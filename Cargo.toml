@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies]
 udev = "0.6.2"
+cfg-if = "1.0.0"
+mockall_double = "0.2.1"
+mockall = "0.11.0"
