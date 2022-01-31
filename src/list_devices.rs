@@ -2,24 +2,45 @@ extern crate udev;
 
 use std::io;
 
-use udev::Device;
+use udev::{Device, Enumerator};
+
+const ID_SERIAL: &str = "ID_SERIAL";
+
+pub fn find_for_serial_ids(enumerator: &mut Enumerator, ids: &[&str]) -> Option<Vec<Device>> {
+    Some(
+        enumerator
+            .scan_devices()
+            .unwrap()
+            .filter(|d| {
+                d.properties().any(|p| {
+                    p.name().to_str().unwrap() == ID_SERIAL
+                        && ids.contains(&p.value().to_str().unwrap())
+                })
+            })
+            .collect::<Vec<Device>>(),
+    )
+}
+
+pub fn find_by_serial_id(enumerator: &mut Enumerator, id_serial: &str) -> Option<Device> {
+    enumerator.scan_devices().unwrap().find(|d| {
+        d.properties().any(|p| {
+            p.name().to_str().unwrap() == ID_SERIAL && p.value().to_str().unwrap() == id_serial
+        })
+    })
+}
 
 pub fn list_devices() -> io::Result<()> {
-    let mut enumerator = udev::Enumerator::new()?;
+    let mut enumerator = Enumerator::new()?;
 
-    let keyboard_list: Vec<String> = vec!["TKC_Portico".to_string()];
+    println!("{:#?}", find_by_serial_id(&mut enumerator, "TKC_Portico"));
 
-    let keyboards = enumerator
-        .scan_devices()?
-        .filter(|d| {
-            d.properties().any(|p| {
-                p.name().to_str().unwrap() == "ID_SERIAL"
-                    && keyboard_list.contains(&p.value().to_str().unwrap().to_string())
-            })
-        })
-        .collect::<Vec<Device>>();
+    let keyboard_list = vec!["TKC_Portico"];
+    println!(
+        "{:#?}",
+        find_for_serial_ids(&mut enumerator, &keyboard_list)
+    );
 
-    println!("{:#?}", keyboards);
+    // println!("{:#?}", keyboards);
 
     // for device in enumerator.scan_devices()? {
     //     println!();
