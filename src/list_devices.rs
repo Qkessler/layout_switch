@@ -1,6 +1,8 @@
 extern crate udev;
 
 use std::io;
+use std::process::Command;
+use std::process::Output;
 
 use udev::Device;
 use udev::Enumerator;
@@ -28,6 +30,14 @@ pub fn find_by_serial_id(enumerator: &mut Enumerator, id_serial: &str) -> Option
             p.name().to_str().unwrap() == ID_SERIAL && p.value().to_str().unwrap() == id_serial
         })
     })
+}
+
+// TODO: should probably take arguments or read from the config file.
+pub fn set_layout(program: &str, args: &[&str]) -> io::Result<Output> {
+    return match Command::new(program).args(args).output() {
+        Ok(output) => Ok(output),
+        Err(error) => Err(error),
+    };
 }
 
 pub fn list_devices() -> io::Result<()> {
@@ -60,16 +70,4 @@ pub fn list_devices() -> io::Result<()> {
     // }
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_find_by_serial_id() {
-        let mut enumerator = Enumerator::new().unwrap();
-
-        assert_ne!(find_by_serial_id(&mut enumerator, "TKC_Portico"), None);
-    }
 }
