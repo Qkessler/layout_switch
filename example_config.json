@@ -1,0 +1,10 @@
+{
+  "keyboards": {
+    "TKC_Portico": [
+      "echo 'this is so cool'"
+    ],
+    "default": [
+      "echo 'this is the default keyboard'"
+    ]
+  }
+}

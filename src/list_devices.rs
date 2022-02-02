@@ -3,7 +3,6 @@ extern crate udev;
 
 use std::collections::HashMap;
 use std::error::Error;
-use std::io;
 use std::process::{Command, Output};
 
 use simple_error::bail;
@@ -13,10 +12,9 @@ use udev::Enumerator;
 const ID_SERIAL: &str = "ID_SERIAL";
 type BoxResult<T> = Result<T, Box<dyn Error>>;
 
-pub fn find_for_serial_ids<'a>(
+pub fn find_for_serial_ids(
     enumerator: &mut Enumerator,
-    keyboards: &'a HashMap<&str, Vec<&str>>,
-    // ) -> Option<(&'a str, Vec<&'a str>)> {
+    keyboards: &HashMap<String, Vec<String>>,
 ) -> Option<String> {
     enumerator
         .scan_devices()

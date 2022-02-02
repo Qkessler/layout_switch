@@ -4,4 +4,4 @@ Maybe could be interesting to have all the commands to be run for a specific "va
 
 The above proposition would give the user all the control, we just have the infraestructure to make it happen; we keep the scope small, we check whether the --keyboard device is connected and change the layout according with the config file or arguments.
 
-** TODO Should we enforce having a config file?
+Let's choose the =.config/layout_switcher/config.yaml= file.
