@@ -12,19 +12,21 @@ use udev::Enumerator;
 const ID_SERIAL: &str = "ID_SERIAL";
 type BoxResult<T> = Result<T, Box<dyn Error>>;
 
-pub fn find_for_serial_ids(enumerator: &mut Enumerator, ids: &[&str]) -> Option<Vec<Device>> {
-    Some(
-        enumerator
-            .scan_devices()
-            .unwrap()
-            .filter(|d| {
-                d.properties().any(|p| {
-                    p.name().to_str().unwrap() == ID_SERIAL
-                        && ids.contains(&p.value().to_str().unwrap())
-                })
-            })
-            .collect::<Vec<Device>>(),
-    )
+pub fn find_for_serial_ids<'a>(
+    enumerator: &mut Enumerator,
+    keyboards: &'a HashMap<&str, Vec<&str>>,
+    // ) -> Option<(&'a str, Vec<&'a str>)> {
+) -> Option<String> {
+    enumerator
+        .scan_devices()
+        .unwrap()
+        .flat_map(|d| {
+            d.properties()
+                .filter(|p| p.name().to_str().unwrap() == ID_SERIAL)
+                .map(|p| p.value().to_str().unwrap().to_owned())
+                .collect::<Vec<String>>()
+        })
+        .find(|keyboard_serial_id| keyboards.contains_key(keyboard_serial_id.as_str()))
 }
 
 pub fn find_by_serial_id(enumerator: &mut Enumerator, id_serial: &str) -> Option<Device> {
