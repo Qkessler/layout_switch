@@ -1,10 +1,15 @@
 mod list_devices;
 
 use common_macros::hash_map;
+use list_devices::find_for_serial_ids;
 use std::collections::HashMap;
+use udev::Enumerator;
 
-use list_devices::list_devices;
 use list_devices::set_layout;
+
+struct LayoutSwitcherConfig<'a> {
+    keyboards: HashMap<&'a str, Vec<&'a str>>,
+}
 
 fn main() {
     let layout_config = LayoutSwitcherConfig {

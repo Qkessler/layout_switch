@@ -1,6 +1,7 @@
 extern crate simple_error;
 extern crate udev;
 
+use std::collections::HashMap;
 use std::error::Error;
 use std::io;
 use std::process::{Command, Output};
@@ -43,36 +44,4 @@ pub fn set_layout(program: &str, args: &[&str]) -> BoxResult<Output> {
         Ok(output) => Ok(output),
         Err(error) => bail!("set_layout error: {:?}", error),
     };
-}
-
-pub fn list_devices() -> BoxResult<()> {
-    let mut enumerator = Enumerator::new()?;
-
-    println!("{:#?}", find_by_serial_id(&mut enumerator, "TKC_Portico"));
-
-    let keyboard_list = vec!["TKC_Portico"];
-    println!(
-        "{:#?}",
-        find_for_serial_ids(&mut enumerator, &keyboard_list)
-    );
-
-    // println!("{:#?}", keyboards);
-
-    // for device in enumerator.scan_devices()? {
-    //     println!();
-    //     println!("{:#?}", device);
-
-    //     println!("  [properties]");
-    //     for property in device.properties() {
-    //         println!("    - {:?} {:?}", property.name(), property.value());
-    //     }
-    // }
-
-    // println!("  [attributes]");
-    // for attribute in device.attributes() {
-    //     println!("    - {:?} {:?}", attribute.name(), attribute.value());
-    // }
-    // }
-
-    Ok(())
 }
