@@ -1,6 +1,7 @@
 mod list_devices;
 
 use common_macros::hash_map;
+use home::home_dir;
 use list_devices::find_for_serial_ids;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs::File, io::BufReader, process::Command};
@@ -29,26 +30,17 @@ fn run_commands(commands: &[String]) {
 }
 
 fn main() {
-    let mut layout_config = LayoutSwitcherConfig {
-        keyboards: hash_map! {
-            "TKC_Portico".to_string() => vec!["echo 'this is so cool'".to_string()],
-        },
-    };
-    let config_string = serde_json::to_string(&layout_config).unwrap();
-    println!("{:?}", config_string);
-    layout_config = serde_json::from_str(&config_string).unwrap();
-    println!("{:?}", layout_config);
+    let config_file_path = "/.config/layout_switcher/config.json";
+    let config_file_str = format!(
+        "{}{}",
+        home_dir().unwrap().to_str().unwrap(),
+        config_file_path
+    );
 
-    let file = File::open("/home/qkessler/.config/layout_switcher/config.json");
-    if let Ok(file) = file {
-        let reader = BufReader::new(file);
-        let layout_config_from_reader: LayoutSwitcherConfig =
-            serde_json::from_reader(reader).unwrap();
-        println!("{:?}", layout_config_from_reader);
-    } else {
-        println!("nope");
-    }
-    return;
+    let config_file = File::open(config_file_str).unwrap();
+    let reader = BufReader::new(config_file);
+    let layout_config: LayoutSwitcherConfig = serde_json::from_reader(reader).unwrap();
+
     let mut enumerator = Enumerator::new().unwrap();
     let keyboard_id = find_for_serial_ids(&mut enumerator, &layout_config.keyboards);
 
@@ -63,6 +55,7 @@ fn main() {
         run_commands(layout_config.keyboards.get(keyboard_id.as_str()).unwrap());
     } else {
         println!("no keyboard found, running default commands");
+        run_commands(layout_config.keyboards.get("default").unwrap());
     }
 
     /*
