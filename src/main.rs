@@ -116,16 +116,19 @@ fn list_devices(enumerator: &mut Enumerator) -> HashSet<String> {
 fn main() {
     let args = Args::parse();
     let keyboard_commands_args = parse_args(&args);
-    let mut enumerator = Enumerator::new().unwrap();
 
     match args.command {
-        Commands::List => list_devices(&mut enumerator)
-            .iter()
-            .for_each(|serial_id| println!("{}", serial_id)),
+        Commands::List => {
+            let mut enumerator = Enumerator::new().unwrap();
+            list_devices(&mut enumerator)
+                .iter()
+                .for_each(|serial_id| println!("{}", serial_id));
+        }
         Commands::Benchmark => {
             let layout_config = get_config_with_args(keyboard_commands_args.as_ref());
 
             let context = Context::new().unwrap();
+            let mut enumerator = Enumerator::new().unwrap();
             print!("list_devices_with_libusb: ");
             benchmark!(list_devices_with_libusb());
 
