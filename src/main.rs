@@ -6,7 +6,7 @@ use common_macros::hash_map;
 use clap::{Parser, Subcommand};
 use home::home_dir;
 use libusb::Context;
-use list_devices::{find_for_serial_ids, find_with_libusb};
+use list_devices::{find_with_libusb, find_with_udev};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
@@ -14,11 +14,21 @@ use std::{
     io::BufReader,
     process::Command,
     thread::sleep,
-    time::Duration,
+    time::{Duration, Instant},
 };
 use udev::Enumerator;
 
+use crate::list_devices::list_devices_with_libusb;
+
 const CONFIG_FILE_PATH: &str = "/.config/layout_switcher/config.json";
+
+macro_rules! benchmark {
+    ($func:expr) => {
+        let now = Instant::now();
+        $func;
+        println!("{:.2?}", now.elapsed());
+    };
+}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct LayoutSwitcherConfig {
@@ -48,6 +58,7 @@ struct Args {
 enum Commands {
     List,
     Monitor,
+    Benchmark,
 }
 
 fn run_commands(commands: &[String]) {
@@ -107,17 +118,30 @@ fn main() {
     let keyboard_commands_args = parse_args(&args);
     let mut enumerator = Enumerator::new().unwrap();
 
-    find_with_libusb();
-
     match args.command {
         Commands::List => list_devices(&mut enumerator)
             .iter()
             .for_each(|serial_id| println!("{}", serial_id)),
+        Commands::Benchmark => {
+            let layout_config = get_config_with_args(keyboard_commands_args.as_ref());
+
+            let context = Context::new().unwrap();
+            print!("list_devices_with_libusb: ");
+            benchmark!(list_devices_with_libusb());
+
+            print!("find_with_libusb: ");
+            benchmark!(find_with_libusb(&context, &layout_config.keyboards));
+
+            print!("find_with_udev: ");
+            benchmark!(find_with_udev(&mut enumerator, &layout_config.keyboards));
+        }
         Commands::Monitor => {
             let layout_config = get_config_with_args(keyboard_commands_args.as_ref());
+            let context = Context::new().unwrap();
+
             let mut prev = "".to_string();
             loop {
-                let keyboard_id = find_for_serial_ids(&mut enumerator, &layout_config.keyboards);
+                let keyboard_id = find_with_libusb(&context, &layout_config.keyboards);
 
                 if let Some(keyboard_id) = keyboard_id {
                     if prev != keyboard_id {
@@ -135,35 +159,6 @@ fn main() {
             }
         }
     }
-
-    let context = Context::new();
-    for device_list in context.unwrap().devices().iter() {
-        device_list.iter().for_each(|device| println!("{}", device.address()))
-    }   
-    return;
-
-    for device in enumerator.scan_devices().unwrap() {
-        println!();
-        println!("{:#?}", device);
-
-        println!("  [properties]");
-        for property in device.properties() {
-            println!("    - {:?} {:?}", property.name(), property.value());
-        }
-
-        println!("  [attributes]");
-        for attribute in device.attributes() {
-            println!("    - {:?} {:?}", attribute.name(), attribute.value());
-        }
-    }
-
-    /*
-    1. Get the list of keyboards, it will be ordered secuentially with priority.
-    loop // could loop every 0.5s(?) {
-        2. If one of them is connected, run the commands in the config file to change its layout.
-        3. Else, do nothing.
-    }
-    */
 }
 
 fn get_config_with_args(
