@@ -6,10 +6,10 @@ use common_macros::hash_map;
 use clap::{Parser, Subcommand};
 use home::home_dir;
 use libusb::Context;
-use list_devices::{find_with_libusb, find_with_udev};
+use list_devices::{find_with_libusb, find_with_udev, list_devices_with_udev};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fs::File,
     io::BufReader,
     process::Command,

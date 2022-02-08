@@ -1,10 +1,14 @@
 {
   "keyboards": {
+    "c2ab:3939": [
+      "setxkbmap us -option '' -option 'compose:ralt'"
+    ],
     "TKC_Portico": [
       "echo 'this is so cool'"
     ],
     "default": [
-      "echo 'this is the default keyboard'"
+      "setxkbmap dvorak -option 'compose:ralt' -option 'ctrl:swapcaps'",
+      "xcape -e 'Control_L=Escape'"
     ]
   }
 }

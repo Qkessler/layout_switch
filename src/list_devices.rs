@@ -1,7 +1,7 @@
 extern crate simple_error;
 extern crate udev;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, io, time::Duration};
 
 use libusb::Context;
 use udev::Enumerator;
@@ -55,12 +55,47 @@ pub fn list_devices_with_libusb() {
             Err(_) => continue,
         };
 
+        let handle = match device.open() {
+            Ok(handle) => handle,
+            Err(error) => {
+                println!("{}", error);
+                continue;
+            }
+        };
+
+        let timeout = Duration::from_secs(1);
+        let language = handle.read_languages(timeout).unwrap();
+
+        let product_name = handle
+            .read_product_string(language[0], &device_desc, timeout)
+            .ok();
+
         println!(
-            "Bus {:03} Device {:03} ID {:04x}:{:04x}",
-            device.bus_number(),
+            "Name {:?} ID {:04x}:{:04x}",
+            product_name,
             device.address(),
             device_desc.vendor_id(),
-            device_desc.product_id()
         );
     }
+}
+
+pub fn list_devices_with_udev() -> io::Result<()> {
+    let mut enumerator = udev::Enumerator::new()?;
+
+    for device in enumerator.scan_devices()? {
+        println!();
+        println!("{:#?}", device);
+
+        println!("  [properties]");
+        for property in device.properties() {
+            println!("    - {:?} {:?}", property.name(), property.value());
+        }
+
+        println!("  [attributes]");
+        for attribute in device.attributes() {
+            println!("    - {:?} {:?}", attribute.name(), attribute.value());
+        }
+    }
+
+    Ok(())
 }
