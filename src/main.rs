@@ -47,8 +47,12 @@ struct Args {
     keyboard: Option<String>,
 
     /// Commands to run if the keyboard is connected, in JSON format.
-    #[clap(short, long)]
+    #[clap(long)]
     commands: Option<String>,
+
+    /// Config file path, will use default if not passed.
+    #[clap(short, long)]
+    config: Option<String>,
 
     #[clap(subcommand)]
     command: Commands,
@@ -86,31 +90,17 @@ fn parse_args(args: &Args) -> Option<(String, Vec<String>)> {
     }
 }
 
-fn get_config_from_file() -> LayoutSwitcherConfig {
-    let config_file_str = format!(
+fn get_config_from_file(file_path: Option<String>) -> LayoutSwitcherConfig {
+    let config_file_str = file_path.unwrap_or(format!(
         "{}{}",
         home_dir().unwrap().to_str().unwrap(),
         CONFIG_FILE_PATH
-    );
+    ));
 
     let config_file = File::open(config_file_str).unwrap();
     let reader = BufReader::new(config_file);
 
     serde_json::from_reader(reader).unwrap()
-}
-
-fn list_devices(enumerator: &mut Enumerator) -> HashSet<String> {
-    enumerator
-        .scan_devices()
-        .unwrap()
-        .flat_map(|device| {
-            device
-                .properties()
-                .filter(|p| p.name().to_str().unwrap() == "ID_SERIAL")
-                .map(|p| p.value().to_str().unwrap().to_string())
-                .collect::<Vec<String>>()
-        })
-        .collect::<HashSet<String>>()
 }
 
 fn main() {
@@ -119,13 +109,11 @@ fn main() {
 
     match args.command {
         Commands::List => {
-            let mut enumerator = Enumerator::new().unwrap();
-            list_devices(&mut enumerator)
-                .iter()
-                .for_each(|serial_id| println!("{}", serial_id));
+            list_devices_with_udev().unwrap();
         }
         Commands::Benchmark => {
-            let layout_config = get_config_with_args(keyboard_commands_args.as_ref());
+            let mut layout_config = get_config_from_file(args.config);
+            get_config_with_args(&mut layout_config, keyboard_commands_args.as_ref());
 
             let context = Context::new().unwrap();
             let mut enumerator = Enumerator::new().unwrap();
@@ -139,7 +127,9 @@ fn main() {
             benchmark!(find_with_udev(&mut enumerator, &layout_config.keyboards));
         }
         Commands::Monitor => {
-            let layout_config = get_config_with_args(keyboard_commands_args.as_ref());
+            let mut layout_config = get_config_from_file(args.config);
+            get_config_with_args(&mut layout_config, keyboard_commands_args.as_ref());
+
             let context = Context::new().unwrap();
 
             let mut prev = "".to_string();
@@ -165,19 +155,13 @@ fn main() {
 }
 
 fn get_config_with_args(
+    config: &mut LayoutSwitcherConfig,
     keyboard_commands_args: Option<&(String, Vec<String>)>,
-) -> LayoutSwitcherConfig {
-    let mut layout_config = get_config_from_file();
-    match keyboard_commands_args {
-        Some((keyboard, commands)) => {
-            if layout_config.keyboards.contains_key(keyboard) {
-                layout_config
-                    .keyboards
-                    .insert(keyboard.clone(), commands.clone());
-            }
-            layout_config
+) {
+    if let Some((keyboard, commands)) = keyboard_commands_args {
+        if config.keyboards.contains_key(keyboard) {
+            config.keyboards.insert(keyboard.clone(), commands.clone());
         }
-        None => layout_config,
     }
 }
 
